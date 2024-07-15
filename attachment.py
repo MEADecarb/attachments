@@ -51,7 +51,21 @@ def append_pdf_to_docx(pdf_paths, docx_path):
     set_document_font(doc)
     doc.save(docx_path)
 
-def process_zip(zip_path, pdf_paths, output_zip_path):
+def append_docx_to_docx(docx_paths, docx_path):
+    try:
+        doc = Document(docx_path)
+    except:
+        doc = Document()
+
+    for path in docx_paths:
+        sub_doc = Document(path)
+        for element in sub_doc.element.body:
+            doc.element.body.append(element)
+
+    set_document_font(doc)
+    doc.save(docx_path)
+
+def process_zip(zip_path, file_paths, output_zip_path, file_type):
     extract_dir = "extracted_docs"
     os.makedirs(extract_dir, exist_ok=True)
 
@@ -62,7 +76,10 @@ def process_zip(zip_path, pdf_paths, output_zip_path):
         for file in files:
             if file.endswith('.docx'):
                 docx_path = os.path.join(root, file)
-                append_pdf_to_docx(pdf_paths, docx_path)
+                if file_type == 'pdf':
+                    append_pdf_to_docx(file_paths, docx_path)
+                elif file_type == 'docx':
+                    append_docx_to_docx(file_paths, docx_path)
 
     with zipfile.ZipFile(output_zip_path, 'w') as zip_ref:
         for root, _, files in os.walk(extract_dir):
@@ -73,36 +90,39 @@ def process_zip(zip_path, pdf_paths, output_zip_path):
     shutil.rmtree(extract_dir)
 
 # Streamlit app
-st.title("Append PDFs to Word Documents")
+st.title("Append PDFs or Word Documents to Word Documents")
 
 # Add a text box with a link to MEA Attachment A
 st.markdown("### MEA Attachment A available here: [MEA Attachment A](https://energy.maryland.gov/Pages/all-incentives.aspx)")
 
 # Upload zip file
 zip_file = st.file_uploader("Upload ZIP file containing Word documents", type=["zip"])
-# Upload multiple PDF files
-pdf_files = st.file_uploader("Upload PDF files to append", type=["pdf"], accept_multiple_files=True)
+# Choose file type to append
+file_type = st.selectbox("Select file type to append", ["PDF", "Word Document"])
+# Upload multiple files
+file_types = {"PDF": "pdf", "Word Document": "docx"}
+files = st.file_uploader(f"Upload {file_type} files to append", type=[file_types[file_type]], accept_multiple_files=True)
 
 if st.button("Process"):
-    if zip_file and pdf_files:
+    if zip_file and files:
         zip_path = zip_file.name
         output_zip_path = "output.zip"
 
         with open(zip_path, "wb") as f:
             f.write(zip_file.getbuffer())
 
-        pdf_paths = []
-        for pdf_file in pdf_files:
-            pdf_path = pdf_file.name
-            with open(pdf_path, "wb") as f:
-                f.write(pdf_file.getbuffer())
-            pdf_paths.append(pdf_path)
+        file_paths = []
+        for file in files:
+            file_path = file.name
+            with open(file_path, "wb") as f:
+                f.write(file.getbuffer())
+            file_paths.append(file_path)
 
-        process_zip(zip_path, pdf_paths, output_zip_path)
+        process_zip(zip_path, file_paths, output_zip_path, file_types[file_type])
         
         with open(output_zip_path, "rb") as f:
             st.download_button("Download processed ZIP", f, file_name="processed_documents.zip")
         
-        st.success(f"PDFs appended to Word documents in {output_zip_path} successfully.")
+        st.success(f"{file_type}s appended to Word documents in {output_zip_path} successfully.")
     else:
-        st.error("Please upload both a ZIP file and at least one PDF file.")
+        st.error("Please upload both a ZIP file and at least one file to append.")
