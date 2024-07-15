@@ -75,6 +75,9 @@ def process_zip(zip_path, pdf_paths, output_zip_path):
 # Streamlit app
 st.title("Append PDFs to Word Documents")
 
+# Add a text box with a link to MEA Attachment A
+st.markdown("### MEA Attachment A available here: [MEA Attachment A](https://energy.maryland.gov/Pages/all-incentives.aspx)")
+
 # Upload zip file
 zip_file = st.file_uploader("Upload ZIP file containing Word documents", type=["zip"])
 # Upload multiple PDF files
