@@ -96,7 +96,7 @@ st.title("Append PDFs or Word Documents to Word Documents")
 st.markdown("### MEA Attachment A available here: [MEA Attachment A](https://energy.maryland.gov/Pages/all-incentives.aspx)")
 
 # Upload zip file
-zip_file = st.file_uploader("Upload ZIP file containing Word documents", type=["zip"])
+zip_file = st.file_uploader("Upload ZIP file containing Word or PDF documents", type=["zip"])
 # Choose file type to append
 file_type = st.selectbox("Select file type to append", ["PDF", "Word Document"])
 # Upload multiple files
@@ -123,6 +123,6 @@ if st.button("Process"):
         with open(output_zip_path, "rb") as f:
             st.download_button("Download processed ZIP", f, file_name="processed_documents.zip")
         
-        st.success(f"{file_type}s appended to Word documents in {output_zip_path} successfully.")
+        st.success(f"{file_type}s appended to documents in {output_zip_path} successfully.")
     else:
         st.error("Please upload both a ZIP file and at least one file to append.")
