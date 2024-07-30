@@ -89,6 +89,37 @@ def process_zip(zip_path, file_paths, output_zip_path, file_type):
 
     shutil.rmtree(extract_dir)
 
+def process_appended_zip(zip_path, output_zip_path):
+    extract_dir = "extracted_docs"
+    os.makedirs(extract_dir, exist_ok=True)
+
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_dir)
+
+    docx_files = []
+    pdf_files = []
+
+    for root, _, files in os.walk(extract_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            if file.endswith('.docx'):
+                docx_files.append(full_path)
+            elif file.endswith('.pdf'):
+                pdf_files.append(full_path)
+
+    if docx_files:
+        process_zip(zip_path, docx_files, output_zip_path, 'docx')
+    if pdf_files:
+        process_zip(zip_path, pdf_files, output_zip_path, 'pdf')
+
+    with zipfile.ZipFile(output_zip_path, 'w') as zip_ref:
+        for root, _, files in os.walk(extract_dir):
+            for file in files:
+                full_path = os.path.join(root, file)
+                zip_ref.write(full_path, os.path.relpath(full_path, extract_dir))
+
+    shutil.rmtree(extract_dir)
+
 # Streamlit app
 st.title("Append PDFs or Word Documents to Word Documents")
 
@@ -107,8 +138,11 @@ if isinstance(file_extension, list):
 else:
     files = st.file_uploader(f"Upload {file_type} files to append", type=[file_extension], accept_multiple_files=True)
 
+# Option to upload a zip file containing Word or PDF documents to append
+append_zip_file = st.file_uploader("Upload ZIP file containing documents to append", type=["zip"])
+
 if st.button("Process"):
-    if zip_file and files:
+    if zip_file and (files or append_zip_file):
         zip_path = zip_file.name
         output_zip_path = "output.zip"
 
@@ -116,17 +150,24 @@ if st.button("Process"):
             f.write(zip_file.getbuffer())
 
         file_paths = []
-        for file in files:
-            file_path = file.name
-            with open(file_path, "wb") as f:
-                f.write(file.getbuffer())
-            file_paths.append(file_path)
+        if files:
+            for file in files:
+                file_path = file.name
+                with open(file_path, "wb") as f:
+                    f.write(file.getbuffer())
+                file_paths.append(file_path)
 
-        if file_type == "Both PDF and Word Document":
-            process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.pdf')], output_zip_path, 'pdf')
-            process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.docx')], output_zip_path, 'docx')
+        if append_zip_file:
+            append_zip_path = append_zip_file.name
+            with open(append_zip_path, "wb") as f:
+                f.write(append_zip_file.getbuffer())
+            process_appended_zip(append_zip_path, output_zip_path)
         else:
-            process_zip(zip_path, file_paths, output_zip_path, file_extension)
+            if file_type == "Both PDF and Word Document":
+                process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.pdf')], output_zip_path, 'pdf')
+                process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.docx')], output_zip_path, 'docx')
+            else:
+                process_zip(zip_path, file_paths, output_zip_path, file_extension)
         
         with open(output_zip_path, "rb") as f:
             st.download_button("Download processed ZIP", f, file_name="processed_documents.zip")
