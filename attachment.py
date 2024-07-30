@@ -98,10 +98,14 @@ st.markdown("### MEA Attachment A available here: [MEA Attachment A](https://ene
 # Upload zip file
 zip_file = st.file_uploader("Upload ZIP file containing Word or PDF documents", type=["zip"])
 # Choose file type to append
-file_type = st.selectbox("Select file type to append", ["PDF", "Word Document"])
+file_type = st.selectbox("Select file type to append", ["PDF", "Word Document", "Both PDF and Word Document"])
 # Upload multiple files
-file_types = {"PDF": "pdf", "Word Document": "docx"}
-files = st.file_uploader(f"Upload {file_type} files to append", type=[file_types[file_type]], accept_multiple_files=True)
+file_types = {"PDF": "pdf", "Word Document": "docx", "Both PDF and Word Document": ["pdf", "docx"]}
+file_extension = file_types[file_type]
+if isinstance(file_extension, list):
+    files = st.file_uploader(f"Upload PDF and Word Document files to append", type=file_extension, accept_multiple_files=True)
+else:
+    files = st.file_uploader(f"Upload {file_type} files to append", type=[file_extension], accept_multiple_files=True)
 
 if st.button("Process"):
     if zip_file and files:
@@ -118,7 +122,11 @@ if st.button("Process"):
                 f.write(file.getbuffer())
             file_paths.append(file_path)
 
-        process_zip(zip_path, file_paths, output_zip_path, file_types[file_type])
+        if file_type == "Both PDF and Word Document":
+            process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.pdf')], output_zip_path, 'pdf')
+            process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.docx')], output_zip_path, 'docx')
+        else:
+            process_zip(zip_path, file_paths, output_zip_path, file_extension)
         
         with open(output_zip_path, "rb") as f:
             st.download_button("Download processed ZIP", f, file_name="processed_documents.zip")
