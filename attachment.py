@@ -67,7 +67,8 @@ def append_docx_to_docx(docx_paths, docx_path):
 
 def process_zip(zip_path, file_paths, output_zip_path, file_type):
     extract_dir = "extracted_docs"
-    os.makedirs(extract_dir, exist_ok=True)
+    if not os.path.exists(extract_dir):
+        os.makedirs(extract_dir)
 
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_dir)
@@ -91,7 +92,8 @@ def process_zip(zip_path, file_paths, output_zip_path, file_type):
 
 def process_appended_zip(zip_path, output_zip_path):
     extract_dir = "extracted_docs"
-    os.makedirs(extract_dir, exist_ok=True)
+    if not os.path.exists(extract_dir):
+        os.makedirs(extract_dir)
 
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_dir)
@@ -139,39 +141,4 @@ else:
     files = st.file_uploader(f"Upload {file_type} files to append", type=[file_extension], accept_multiple_files=True)
 
 # Option to upload a zip file containing Word or PDF documents to append
-append_zip_file = st.file_uploader("Upload ZIP file containing documents to append", type=["zip"])
-
-if st.button("Process"):
-    if zip_file and (files or append_zip_file):
-        zip_path = zip_file.name
-        output_zip_path = "output.zip"
-
-        with open(zip_path, "wb") as f:
-            f.write(zip_file.getbuffer())
-
-        file_paths = []
-        if files:
-            for file in files:
-                file_path = file.name
-                with open(file_path, "wb") as f:
-                    f.write(file.getbuffer())
-                file_paths.append(file_path)
-
-        if append_zip_file:
-            append_zip_path = append_zip_file.name
-            with open(append_zip_path, "wb") as f:
-                f.write(append_zip_file.getbuffer())
-            process_appended_zip(append_zip_path, output_zip_path)
-        else:
-            if file_type == "Both PDF and Word Document":
-                process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.pdf')], output_zip_path, 'pdf')
-                process_zip(zip_path, [fp for fp in file_paths if fp.endswith('.docx')], output_zip_path, 'docx')
-            else:
-                process_zip(zip_path, file_paths, output_zip_path, file_extension)
-        
-        with open(output_zip_path, "rb") as f:
-            st.download_button("Download processed ZIP", f, file_name="processed_documents.zip")
-        
-        st.success(f"{file_type}s appended to documents in {output_zip_path} successfully.")
-    else:
-        st.error("Please upload both a ZIP file and at least one file to append.")
+append_zip_file = st.file_upl
